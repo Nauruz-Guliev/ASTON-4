@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <declare-styleable name="CustomClockView">
+        <attr name="secondHandColor" format="color" />
+        <attr name="minuteHandColor" format="color" />
+        <attr name="hourHandColor" format="color" />
+    </declare-styleable>
+
+    <attr name="customClockStyle" format="reference" />
+</resources>

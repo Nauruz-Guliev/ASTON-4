@@ -12,5 +12,19 @@
         <!-- Status bar color. -->
         <item name="android:statusBarColor">?attr/colorPrimaryVariant</item>
         <!-- Customize your theme here. -->
+
+        <item name="customClockStyle">@style/CustomClockDefaultStyle</item>
+
     </style>
+
+    <style name="CustomClockDefaultStyle">
+        <item name="secondHandColor">#008800</item>
+        <item name="minuteHandColor">#880000</item>
+        <item name="hourHandColor">#03A9F4</item>
+    </style>
+
+    <style name="CustomClockAstonStyle" parent="CustomClockDefaultStyle">
+        <item name="hourHandColor">#0000ff</item>
+    </style>
+
 </resources>
