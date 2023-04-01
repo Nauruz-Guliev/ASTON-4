@@ -6,6 +6,9 @@
     android:layout_height="match_parent"
     tools:context=".MainActivity">
     <ru.example.gnt.aston_4.CustomClockView
+        app:hour_hand_color="@color/black"
+        app:second_hand_color="@color/blue"
+        app:minute_hand_color="@color/red"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="parent"

@@ -2,10 +2,16 @@
 <resources>
 
     <declare-styleable name="CustomClockView">
-        <attr name="secondHandColor" format="color" />
-        <attr name="minuteHandColor" format="color" />
-        <attr name="hourHandColor" format="color" />
-    </declare-styleable>
+        <attr name="second_hand_color" format="color" />
+        <attr name="minute_hand_color" format="color" />
+        <attr name="hour_hand_color" format="color" />
+        <attr name="clock_color" format="color" />
 
+        <attr name="second_start_time" format="integer" />
+        <attr name="minute_start_time" format="integer" />
+        <attr name="hour_start_time" format="integer" />
+
+
+    </declare-styleable>
     <attr name="customClockStyle" format="reference" />
 </resources>

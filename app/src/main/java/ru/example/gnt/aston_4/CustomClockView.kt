@@ -12,7 +12,6 @@ import android.os.Handler
 import android.os.Looper
 import android.util.AttributeSet
 import android.view.View
-import androidx.core.content.ContextCompat
 import androidx.core.graphics.drawable.DrawableCompat
 import kotlin.math.cos
 import kotlin.math.min
@@ -20,7 +19,6 @@ import kotlin.math.sin
 import kotlin.properties.Delegates
 
 
-@SuppressLint("UseCompatLoadingForDrawables")
 class CustomClockView(
     context: Context,
     attributesSet: AttributeSet?,
@@ -43,52 +41,81 @@ class CustomClockView(
 
     private var listOfClockNumberInfo = listOf<ClockNumber>()
 
-    private var hourHandSize by Delegates.notNull<Float>()
-    private var handSize by Delegates.notNull<Float>()
-
-    private var seconds: Int = -1
-    private var minutes: Int = -1
-
     private var myHandler: Handler
 
-    private lateinit var secondHandDrawable: Drawable
-    private lateinit var minuteHandDrawable: Drawable
-    private lateinit var hourHandDrawable: Drawable
+    private var secondHandInfo: ClockHandInfo? = null
+    private var minuteHandInfo: ClockHandInfo? = null
+    private var hourHandInfo: ClockHandInfo? = null
 
 
+    private var clockColor: Int? = null
 
     init {
+        myHandler = Handler(Looper.getMainLooper())
+        if (attributesSet != null) {
+            initAttributes(attributesSet, defStyleAttr, defStyleRes)
+        }
         viewPaint = Paint(ANTI_ALIAS_FLAG)
         viewNumbers = IntRange(1, 12).step(1).toList().toIntArray()
         viewRectangle = Rect()
         updateViewSizes()
-        myHandler = Handler(Looper.getMainLooper())
-        initSecondHand()
-        initMinuteHand()
     }
 
-    private fun initSecondHand() {
-        secondHandDrawable = context.getDrawable(R.drawable.second_hand)!!
-        DrawableCompat.setTint(secondHandDrawable, ContextCompat.getColor(context, R.color.blue))
-        myHandler.postDelayed(object : Runnable {
-            override fun run() {
-                seconds++
-                myHandler.postDelayed(this, 1000)
-            }
-        }, 0)
-    }
+    @SuppressLint("UseCompatLoadingForDrawables")
+    private fun initAttributes(attributesSet: AttributeSet?, defStyleAttr: Int, defStyleRes: Int) {
+        val typedArray = context.obtainStyledAttributes(
+            attributesSet,
+            R.styleable.CustomClockView,
+            defStyleAttr,
+            defStyleRes
+        )
+        secondHandInfo = ClockHandInfo(
+            timeValue = typedArray.getColor(
+                R.styleable.CustomClockView_second_start_time,
+                DEFAULT_SECOND_START_TIME
+            ),
+            drawable = context.getDrawable(R.drawable.second_hand)!!,
+            repeatIntervalInMilliseconds = 1000,
+            color = typedArray.getColor(
+                R.styleable.CustomClockView_second_hand_color,
+                DEFAULT_SECOND_HAND_COLOR
+            ),
+            myHandler = myHandler
+        )
 
-    private fun initMinuteHand() {
-        minuteHandDrawable = context.getDrawable(R.drawable.second_hand)!!
-        DrawableCompat.setTint(minuteHandDrawable, ContextCompat.getColor(context, R.color.black))
-        myHandler.postDelayed(object : Runnable {
-            override fun run() {
-                minutes++
-                myHandler.postDelayed(this, 60000)
-            }
-        }, 0)
-    }
+        minuteHandInfo = ClockHandInfo(
+            timeValue = typedArray.getColor(
+                R.styleable.CustomClockView_minute_start_time,
+                DEFAULT_MINUTE_START_TIME
+            ),
+            drawable = context.getDrawable(R.drawable.minute_hand)!!,
+            repeatIntervalInMilliseconds = 60000,
+            color = typedArray.getColor(
+                R.styleable.CustomClockView_minute_hand_color,
+                DEFAULT_MINUTE_HAND_COLOR
+            ),
+            myHandler = myHandler
+        )
 
+        hourHandInfo = ClockHandInfo(
+            timeValue = typedArray.getColor(
+                R.styleable.CustomClockView_hour_start_time,
+                DEFAULT_HOUR_START_TIME
+            ),
+            drawable = context.getDrawable(R.drawable.hour_hand)!!,
+            repeatIntervalInMilliseconds = 3600000,
+            color = typedArray.getColor(
+                R.styleable.CustomClockView_hour_hand_color,
+                DEFAULT_HOUR_HAND_COLOR
+            ),
+            myHandler = myHandler
+        )
+        clockColor = typedArray.getColor(
+            R.styleable.CustomClockView_clock_color,
+            DEFAULT_CLOCK_COLOR
+        )
+        typedArray.recycle()
+    }
 
     constructor(context: Context, attributesSet: AttributeSet?, defStyleAttr: Int) : this(
         context,
@@ -112,7 +139,7 @@ class CustomClockView(
             style = Paint.Style.STROKE
             strokeWidth = DEFAULT_STROKE_WIDTH
             isAntiAlias = true
-            color = resources.getColor(R.color.black, context.theme)
+            color = clockColor ?: Color.BLACK
         }
         canvas.drawCircle(
             viewCenterX, viewCenterY,
@@ -141,14 +168,44 @@ class CustomClockView(
     private fun updateViewSizes() {
         viewHeight = height
         viewWidth = width
+
         viewCenterY = viewWidth / HALF_DIVIDER
         viewCenterX = viewHeight / HALF_DIVIDER
+
         clockRadius = min(viewHeight / HALF_DIVIDER, viewWidth / HALF_DIVIDER) - DEFAULT_PADDING
         hourNumbersRadius = clockRadius - DEFAULT_CLOCK_NUMBERS_SPACING
+
         listOfClockNumberInfo = getClockNumberList()
 
-        hourHandSize = clockRadius - clockRadius / 2
-        handSize = clockRadius - clockRadius / 4
+        calculateHandBounds()
+    }
+
+    private fun calculateHandBounds() {
+        secondHandInfo?.apply {
+            dimension = ClockHandRectangleBounds(
+                left = viewWidth / 3 + clockRadius.toInt() / 10,
+                top = clockRadius.toInt() - DEFAULT_PADDING.toInt(),
+                right = viewWidth - viewWidth / 3 - clockRadius.toInt() / 10,
+                bottom = clockRadius.toInt()
+            )
+        }
+
+        minuteHandInfo?.apply {
+            dimension = ClockHandRectangleBounds(
+                left = viewWidth / 3,
+                top = clockRadius.toInt() - DEFAULT_PADDING.toInt(),
+                right = viewWidth - viewWidth / 3,
+                bottom = clockRadius.toInt() + DEFAULT_PADDING.toInt() / 2
+            )
+        }
+        hourHandInfo?.apply {
+            dimension = ClockHandRectangleBounds(
+                left = (viewWidth / (3.4)).toInt(),
+                top = clockRadius.toInt() - DEFAULT_PADDING.toInt() * 4,
+                right = viewWidth - (viewWidth / 3.4).toInt(),
+                bottom = clockRadius.toInt() + DEFAULT_PADDING.toInt() / 2
+            )
+        }
     }
 
     /**
@@ -182,40 +239,74 @@ class CustomClockView(
         return list
     }
 
-    private fun drawSecondsHand(canvas: Canvas, location: Float) {
-        secondHandDrawable.setBounds(
-            viewCenterX.toInt() - (clockRadius / 4).toInt(),
-            viewCenterY.toInt() - 12,
-            viewCenterX.toInt() + clockRadius.toInt() - 20,
-            viewCenterY.toInt() + 12
-        )
-        canvas.rotate(location * 6f, viewCenterX, viewCenterY);
-        secondHandDrawable.draw(canvas)
+    private fun drawHand(
+        clockHand: ClockHandInfo,
+        canvas: Canvas,
+    ) {
+        clockHand.run {
+            with(this.dimension!!) {
+                drawable.setBounds(
+                    left,
+                    top,
+                    right,
+                    bottom
+                )
+            }
+            canvas.rotate(timeValue * 6f, viewCenterY, viewCenterY);
+            this.drawable.draw(canvas)
+        }
     }
-
-    private fun drawMinutesHand(canvas: Canvas, location: Float) {
-        minuteHandDrawable.setBounds(
-            viewCenterX.toInt() - (clockRadius / 4).toInt(),
-            viewCenterY.toInt() - 12,
-            viewCenterX.toInt() + clockRadius.toInt() - 20,
-            viewCenterY.toInt() + 12
-        )
-        canvas.rotate(location * 6f, viewCenterY, viewCenterY);
-        minuteHandDrawable.draw(canvas)
-    }
-
 
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
         drawCircle(canvas)
         drawNumbers(canvas)
-    //    drawMinutesHand(canvas, minutes.toFloat())
-        canvas.rotate(-45F, (secondHandDrawable.intrinsicWidth/2).toFloat(),
-            (secondHandDrawable.intrinsicHeight/2).toFloat()
-        )
-        drawSecondsHand(canvas, seconds.toFloat())
+
+        hourHandInfo?.run { drawHand(this, canvas) }
+        minuteHandInfo?.run { drawHand(this, canvas) }
+        secondHandInfo?.run { drawHand(this, canvas) }
+
         postInvalidateDelayed(500)
     }
+
+    private data class ClockHandInfo(
+        var timeValue: Int,
+        var drawable: Drawable,
+        var color: Int? = null,
+        var dimension: ClockHandRectangleBounds? = null,
+        var repeatIntervalInMilliseconds: Int,
+        val myHandler: Handler
+    ) {
+        init {
+            DrawableCompat.setTint(this.drawable, color ?: Color.BLACK)
+            myHandler.postDelayed(object : Runnable {
+                override fun run() {
+                    timeValue++
+                    myHandler.postDelayed(this, repeatIntervalInMilliseconds.toLong())
+                }
+            }, 0)
+        }
+    }
+
+    private inner class ClockNumber(
+        val xPosition: Float,
+        val yPosition: Float,
+        val number: String,
+        val paint: Paint
+    )
+
+    /** // себе для наглядности
+     * @param left The X coordinate of the left side of the rectangle
+     * @param top The Y coordinate of the top of the rectangle
+     * @param right The X coordinate of the right side of the rectangle
+     * @param bottom The Y coordinate of the bottom of the rectangle
+     */
+    private data class ClockHandRectangleBounds(
+        val left: Int,
+        val top: Int,
+        val right: Int,
+        val bottom: Int
+    )
 
     companion object {
         private const val HALF_DIVIDER = 2F
@@ -224,12 +315,14 @@ class CustomClockView(
         private const val DEFAULT_FONT_SIZE = 40F
         private const val DEFAULT_PADDING = DEFAULT_STROKE_WIDTH + 2F
         private const val DEFAULT_CLOCK_NUMBERS_SPACING = 36F
-    }
 
-    inner class ClockNumber(
-        val xPosition: Float,
-        val yPosition: Float,
-        val number: String,
-        val paint: Paint
-    )
+        private const val DEFAULT_SECOND_HAND_COLOR = Color.BLUE
+        private const val DEFAULT_MINUTE_HAND_COLOR = Color.RED
+        private const val DEFAULT_HOUR_HAND_COLOR = Color.BLACK
+        private const val DEFAULT_CLOCK_COLOR = Color.BLACK
+
+        private const val DEFAULT_SECOND_START_TIME = -1
+        private const val DEFAULT_MINUTE_START_TIME = -1
+        private const val DEFAULT_HOUR_START_TIME = -1
+    }
 }

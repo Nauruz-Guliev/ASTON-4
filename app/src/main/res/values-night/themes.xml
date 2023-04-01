@@ -18,12 +18,11 @@
     </style>
 
     <style name="CustomClockDefaultStyle">
-        <item name="secondHandColor">#008800</item>
-        <item name="minuteHandColor">#880000</item>
-        <item name="hourHandColor">#03A9F4</item>
+        <item name="second_hand_color">@color/white</item>
+        <item name="minute_hand_color">@color/white</item>
+        <item name="hour_hand_color">@color/white</item>
+        <item name="clock_color">@color/white</item>
     </style>
 
-    <style name="CustomClockAstonStyle" parent="CustomClockDefaultStyle">
-        <item name="hourHandColor">#0000ff</item>
-    </style>
+
 </resources>
