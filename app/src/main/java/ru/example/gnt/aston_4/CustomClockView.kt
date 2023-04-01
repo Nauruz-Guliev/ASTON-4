@@ -47,8 +47,9 @@ class CustomClockView(
     private var minuteHandInfo: ClockHandInfo? = null
     private var hourHandInfo: ClockHandInfo? = null
 
-
     private var clockColor: Int? = null
+
+    private var fontSize: Float? = null
 
     init {
         myHandler = Handler(Looper.getMainLooper())
@@ -80,7 +81,6 @@ class CustomClockView(
                 R.styleable.CustomClockView_second_hand_color,
                 DEFAULT_SECOND_HAND_COLOR
             ),
-            myHandler = myHandler
         )
 
         minuteHandInfo = ClockHandInfo(
@@ -94,7 +94,6 @@ class CustomClockView(
                 R.styleable.CustomClockView_minute_hand_color,
                 DEFAULT_MINUTE_HAND_COLOR
             ),
-            myHandler = myHandler
         )
 
         hourHandInfo = ClockHandInfo(
@@ -108,15 +107,18 @@ class CustomClockView(
                 R.styleable.CustomClockView_hour_hand_color,
                 DEFAULT_HOUR_HAND_COLOR
             ),
-            myHandler = myHandler
         )
         clockColor = typedArray.getColor(
             R.styleable.CustomClockView_clock_color,
             DEFAULT_CLOCK_COLOR
         )
+
+        fontSize = typedArray.getDimension(
+            R.styleable.CustomClockView_numbers_font_size,
+            DEFAULT_FONT_SIZE
+        )
         typedArray.recycle()
     }
-
     constructor(context: Context, attributesSet: AttributeSet?, defStyleAttr: Int) : this(
         context,
         attributesSet,
@@ -212,7 +214,7 @@ class CustomClockView(
      * @return List of ClockNumber instances that contain necessary information to draw a number
      */
     private fun getClockNumberList(): List<ClockNumber> {
-        viewPaint.textSize = DEFAULT_FONT_SIZE
+        viewPaint.textSize = fontSize ?: DEFAULT_FONT_SIZE
         viewPaint.apply {
             strokeWidth = HOUR_NUMBERS_STROKE_WIDTH
         }
@@ -252,7 +254,7 @@ class CustomClockView(
                     bottom
                 )
             }
-            canvas.rotate(timeValue * 6f, viewCenterY, viewCenterY);
+            canvas.rotate(timeValue * 6f, viewCenterY, viewCenterY)
             this.drawable.draw(canvas)
         }
     }
@@ -269,13 +271,12 @@ class CustomClockView(
         postInvalidateDelayed(500)
     }
 
-    private data class ClockHandInfo(
+    private inner class ClockHandInfo(
         var timeValue: Int,
         var drawable: Drawable,
         var color: Int? = null,
         var dimension: ClockHandRectangleBounds? = null,
         var repeatIntervalInMilliseconds: Int,
-        val myHandler: Handler
     ) {
         init {
             DrawableCompat.setTint(this.drawable, color ?: Color.BLACK)

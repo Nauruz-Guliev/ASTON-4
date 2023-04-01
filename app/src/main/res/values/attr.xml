@@ -11,6 +11,7 @@
         <attr name="minute_start_time" format="integer" />
         <attr name="hour_start_time" format="integer" />
 
+        <attr name="numbers_font_size" format="dimension" />
 
     </declare-styleable>
     <attr name="customClockStyle" format="reference" />
