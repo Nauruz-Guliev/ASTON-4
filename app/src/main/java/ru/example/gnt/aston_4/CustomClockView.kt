@@ -261,8 +261,8 @@ class CustomClockView(
                 list.add(
                     ClockNumber(
                         number = number.toString(),
-                        xPosition = (viewCenterY + cos(angle) * hourNumbersRadius - viewRectangle.width() / 2).toFloat(),
-                        yPosition = (viewCenterY + sin(angle) * hourNumbersRadius + viewRectangle.height() / 2).toFloat(),
+                        xPosition = (viewCenterY + cos(angle) * hourNumbersRadius - viewRectangle.width() / HALF_DIVIDER).toFloat(),
+                        yPosition = (viewCenterY + sin(angle) * hourNumbersRadius + viewRectangle.height() / HALF_DIVIDER).toFloat(),
                         paint = Paint(viewPaint)
                     )
                 )
@@ -316,11 +316,7 @@ class CustomClockView(
             myHandler.postDelayed(object : Runnable {
                 override fun run() {
                     timeValue++
-                    angle = if (isHour) {
-                        timeValue * 6F
-                    } else {
-                        timeValue * 6F
-                    }
+                    angle = timeValue * 6F
                     myHandler.postDelayed(this, repeatIntervalInMilliseconds.toLong())
                 }
             }, 0)
