@@ -13,6 +13,7 @@
 
         <attr name="numbers_font_size" format="dimension" />
 
+        <attr name="display_current_time" format="boolean"/>
     </declare-styleable>
     <attr name="customClockStyle" format="reference" />
 </resources>

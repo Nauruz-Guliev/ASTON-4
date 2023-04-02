@@ -10,9 +10,13 @@ import android.graphics.Rect
 import android.graphics.drawable.Drawable
 import android.os.Handler
 import android.os.Looper
+import android.os.Parcel
+import android.os.Parcelable
 import android.util.AttributeSet
+import android.util.Log
 import android.view.View
 import androidx.core.graphics.drawable.DrawableCompat
+import java.util.*
 import kotlin.math.cos
 import kotlin.math.min
 import kotlin.math.sin
@@ -51,7 +55,12 @@ class CustomClockView(
 
     private var fontSize: Float? = null
 
+    private lateinit var calendar: Calendar
+
+    private var displayCurrentTime: Boolean? = null
+
     init {
+        calendar = Calendar.getInstance()
         myHandler = Handler(Looper.getMainLooper())
         if (attributesSet != null) {
             initAttributes(attributesSet, defStyleAttr, defStyleRes)
@@ -70,44 +79,66 @@ class CustomClockView(
             defStyleAttr,
             defStyleRes
         )
-        secondHandInfo = ClockHandInfo(
-            timeValue = typedArray.getColor(
-                R.styleable.CustomClockView_second_start_time,
-                DEFAULT_SECOND_START_TIME
-            ),
-            drawable = context.getDrawable(R.drawable.second_hand)!!,
-            repeatIntervalInMilliseconds = 1000,
-            color = typedArray.getColor(
-                R.styleable.CustomClockView_second_hand_color,
-                DEFAULT_SECOND_HAND_COLOR
-            ),
+        displayCurrentTime = typedArray.getBoolean(
+            R.styleable.CustomClockView_display_current_time,
+            false
+        )
+        var startSecondTime = typedArray.getColor(
+            R.styleable.CustomClockView_second_start_time,
+            DEFAULT_SECOND_START_TIME
         )
 
-        minuteHandInfo = ClockHandInfo(
-            timeValue = typedArray.getColor(
-                R.styleable.CustomClockView_minute_start_time,
-                DEFAULT_MINUTE_START_TIME
-            ),
-            drawable = context.getDrawable(R.drawable.minute_hand)!!,
-            repeatIntervalInMilliseconds = 60000,
-            color = typedArray.getColor(
-                R.styleable.CustomClockView_minute_hand_color,
-                DEFAULT_MINUTE_HAND_COLOR
-            ),
+        var startMinuteTime = typedArray.getColor(
+            R.styleable.CustomClockView_minute_start_time,
+            DEFAULT_MINUTE_START_TIME
         )
+        var startHourTime = typedArray.getColor(
+            R.styleable.CustomClockView_hour_start_time,
+            DEFAULT_HOUR_START_TIME
+        )
+
+        if (displayCurrentTime == true) {
+            startHourTime = (calendar.get(Calendar.HOUR) * 5) - 1
+            startMinuteTime = -startHourTime + calendar.get(Calendar.MINUTE) - 1
+            startSecondTime = -startMinuteTime + calendar.get(Calendar.SECOND) - 1
+        }
+
 
         hourHandInfo = ClockHandInfo(
-            timeValue = typedArray.getColor(
-                R.styleable.CustomClockView_hour_start_time,
-                DEFAULT_HOUR_START_TIME
-            ),
+            timeValue = startHourTime,
             drawable = context.getDrawable(R.drawable.hour_hand)!!,
             repeatIntervalInMilliseconds = 3600000,
             color = typedArray.getColor(
                 R.styleable.CustomClockView_hour_hand_color,
                 DEFAULT_HOUR_HAND_COLOR
             ),
+            isHour = true,
+            angle = 0F
         )
+        minuteHandInfo = ClockHandInfo(
+            timeValue = startMinuteTime,
+            drawable = context.getDrawable(R.drawable.minute_hand)!!,
+            repeatIntervalInMilliseconds = 60000,
+            color = typedArray.getColor(
+                R.styleable.CustomClockView_minute_hand_color,
+                DEFAULT_MINUTE_HAND_COLOR
+            ),
+            isHour = false,
+            angle = 0F
+        )
+        secondHandInfo = ClockHandInfo(
+            timeValue = startSecondTime,
+            drawable = context.getDrawable(R.drawable.second_hand)!!,
+            repeatIntervalInMilliseconds = 1000,
+            color = typedArray.getColor(
+                R.styleable.CustomClockView_second_hand_color,
+                DEFAULT_SECOND_HAND_COLOR
+            ),
+            isHour = false,
+            angle = 0F
+        )
+
+
         clockColor = typedArray.getColor(
             R.styleable.CustomClockView_clock_color,
             DEFAULT_CLOCK_COLOR
@@ -194,17 +225,17 @@ class CustomClockView(
 
         minuteHandInfo?.apply {
             dimension = ClockHandRectangleBounds(
-                left = viewWidth / 3,
+                left = (viewWidth.toFloat() / 2.9).toInt(),
                 top = clockRadius.toInt() - DEFAULT_PADDING.toInt(),
-                right = viewWidth - viewWidth / 3,
-                bottom = clockRadius.toInt() + DEFAULT_PADDING.toInt() / 2
+                right = viewWidth - (viewWidth / 2.9).toInt(),
+                bottom = clockRadius.toInt() + DEFAULT_PADDING.toInt() / 5
             )
         }
         hourHandInfo?.apply {
             dimension = ClockHandRectangleBounds(
-                left = (viewWidth / (3.4)).toInt(),
+                left = (viewWidth / (3.5)).toInt(),
                 top = clockRadius.toInt() - DEFAULT_PADDING.toInt() * 4,
-                right = viewWidth - (viewWidth / 3.4).toInt(),
+                right = viewWidth - (viewWidth / 3.5).toInt(),
                 bottom = clockRadius.toInt() + DEFAULT_PADDING.toInt() / 2
             )
         }
@@ -254,7 +285,7 @@ class CustomClockView(
                     bottom
                 )
             }
-            canvas.rotate(timeValue * 6f, viewCenterY, viewCenterY)
+            canvas.rotate(angle, viewCenterY, viewCenterY)
             this.drawable.draw(canvas)
         }
     }
@@ -275,6 +306,8 @@ class CustomClockView(
         var timeValue: Int,
         var drawable: Drawable,
         var color: Int? = null,
+        var angle: Float,
+        val isHour: Boolean,
         var dimension: ClockHandRectangleBounds? = null,
         var repeatIntervalInMilliseconds: Int,
     ) {
@@ -283,6 +316,11 @@ class CustomClockView(
             myHandler.postDelayed(object : Runnable {
                 override fun run() {
                     timeValue++
+                    angle = if (isHour) {
+                        timeValue * 6F
+                    } else {
+                        timeValue * 6F
+                    }
                     myHandler.postDelayed(this, repeatIntervalInMilliseconds.toLong())
                 }
             }, 0)
@@ -309,6 +347,54 @@ class CustomClockView(
         val bottom: Int
     )
 
+    override fun onSaveInstanceState(): Parcelable {
+        val superState = super.onSaveInstanceState()!!
+        val savedState = SavedState(superState)
+        savedState.currentSecond = secondHandInfo?.timeValue ?: DEFAULT_SECOND_START_TIME
+        savedState.currentMinute = minuteHandInfo?.timeValue ?: DEFAULT_MINUTE_START_TIME
+        savedState.currentHour = hourHandInfo?.timeValue ?: DEFAULT_HOUR_HAND_COLOR
+        return savedState
+    }
+
+    override fun onRestoreInstanceState(state: Parcelable?) {
+        val savedState = state as SavedState
+        super.onRestoreInstanceState(savedState.superState)
+        secondHandInfo!!.timeValue = savedState.currentSecond - 1
+        minuteHandInfo!!.timeValue = savedState.currentMinute - 1
+        hourHandInfo!!.timeValue = savedState.currentHour - 1
+    }
+
+    class SavedState : BaseSavedState {
+
+        var currentSecond by Delegates.notNull<Int>()
+        var currentMinute by Delegates.notNull<Int>()
+        var currentHour by Delegates.notNull<Int>()
+
+
+        constructor(superState: Parcelable) : super(superState)
+        constructor(parcel: Parcel) : super(parcel) {
+            currentSecond = parcel.readInt()
+            currentMinute = parcel.readInt()
+            currentHour = parcel.readInt()
+        }
+
+        override fun writeToParcel(out: Parcel, flags: Int) {
+            super.writeToParcel(out, flags)
+            out.writeInt(currentSecond)
+            out.writeInt(currentMinute)
+            out.writeInt(currentHour)
+        }
+
+        companion object {
+            @JvmField
+            val CREATOR: Parcelable.Creator<SavedState> = object : Parcelable.Creator<SavedState> {
+                override fun createFromParcel(source: Parcel): SavedState = SavedState(source)
+                override fun newArray(size: Int): Array<SavedState?> = Array(size) { null }
+            }
+        }
+
+    }
+
     companion object {
         private const val HALF_DIVIDER = 2F
         private const val DEFAULT_STROKE_WIDTH = 14F
@@ -322,8 +408,8 @@ class CustomClockView(
         private const val DEFAULT_HOUR_HAND_COLOR = Color.BLACK
         private const val DEFAULT_CLOCK_COLOR = Color.BLACK
 
-        private const val DEFAULT_SECOND_START_TIME = -1
-        private const val DEFAULT_MINUTE_START_TIME = -1
-        private const val DEFAULT_HOUR_START_TIME = -1
+        private const val DEFAULT_SECOND_START_TIME = 28
+        private const val DEFAULT_MINUTE_START_TIME = 22
+        private const val DEFAULT_HOUR_START_TIME = 7
     }
 }

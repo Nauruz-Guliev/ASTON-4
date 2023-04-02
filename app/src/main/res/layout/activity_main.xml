@@ -6,6 +6,7 @@
     android:layout_height="match_parent"
     tools:context=".MainActivity">
     <ru.example.gnt.aston_4.CustomClockView
+        android:id="@+id/custom_clock"
         app:hour_hand_color="@color/black"
         app:numbers_font_size="24sp"
         app:second_hand_color="@color/blue"
